@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home Page
+{% endblock %}
+
+{% block main %}
+
+    <text class="successMessage">{{ result }}</text>
+
+    <form method="post" actoin="/quote">
+        <input class="form-control mx-auto w-auto" type = "text" name = "symbol" required placeholder="Search for a symbol">
+        <button class="btn btn-primary" type="submit">Quote</button>
+    </form>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home Page
+{% endblock %}
+
+{% block main %}
+    <h1>
+        Hello {{ username }}!!!<br>
+    </h1>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th class="text-start">Action</th>
+                <th class="text-end">Symbol</th>
+                <th class="text-end">Quantity</th>
+                <th class="text-end">Price</th>
+                <th class="text-end">Transction Time</th>
+            </tr>
+        </thead>
+       <tbody>
+            {% for transction in history %}
+            <tr>
+                <td>{{ transction["action"] }}</td>
+                <td>{{ transction["symbol"] }}</td>
+                <td>{{ transction["quantity"] }}</td>
+                <td>{{ transction["price"] }}</td>
+                <td>{{ transction["time"] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}

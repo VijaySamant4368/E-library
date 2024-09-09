@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home Page
+{% endblock %}
+
+{% block main %}
+    <h1>
+        Hello {{ username }}!!!<br>
+    </h1>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th class="text-start">Symbol</th>
+                <th class="text-end">Quantity</th>
+                <th class="text-end">Price</th>
+                <th class="text-end">TOTAL</th>
+            </tr>
+        </thead>
+       <tbody>
+            {% for book in shelf %}
+            <tr>
+                <td>Name: {{ book["name"] }}</td>
+                <td>Author: {{ book["author"] }}</td>
+                <td>Price: {{ book["price"] }}</td>
+                <td>Genre {{% for genre in book["genre"] %}}
+                    {{ genre }}
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td class="border-0 fw-bold text-end" colspan="3">Cash</td>
+                <td class="border-0 text-end">{{ cash }}</td>
+            </tr>
+            <tr>
+                <td class="border-0 fw-bold text-end" colspan="3">TOTAL</td>
+                <td class="border-0 w-bold text-end">{{ total }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+{% endblock %}
