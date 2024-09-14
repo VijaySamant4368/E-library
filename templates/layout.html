@@ -15,6 +15,7 @@
         <link href="/static/favicon.ico" rel="icon">
 
         <link href="/static/styles.css" rel="stylesheet">
+        <script src="/static/script.js"></script>
 
         <title>LOGO: {% block title %}{% endblock %}</title>
 
@@ -34,8 +35,12 @@
                             <li class="nav-item"><a class="nav-link" href="/about">About Us</a></li>
                             <li class="nav-item"><a class="nav-link" href="/features">Features</a></li>
                             <li class="nav-item"><a class="nav-link" href="/shelf">My-Shelf</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/uploads">Uploads</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/upload">Uploads</a></li>
                         </ul>
+                        <form method="post" action="/search">
+                          <input class="form-control mx-auto w-auto" type = "text" name = "book_search" placeholder="Search for book">
+                          <button class="btn btn-primary" type="submit" style="display: none">Search</button>
+                      </form>
                         <ul class="navbar-nav ms-auto mt-2">
                             <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>
                         </ul>

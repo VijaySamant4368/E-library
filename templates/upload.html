@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home Page
+{% endblock %}
+
+{% block main %}
+    <h1>
+        Hello {{ username }}!!!<br>
+        {{message}}
+    </h1>
+
+    
+    <form method="post" action="/upload" enctype="multipart/form-data">
+        <input class="form-control mx-auto w-auto" type = "text" name = "name" required placeholder="Enter name of the book">
+        <input class="form-control mx-auto w-auto" type = "text" name = "author" required placeholder="Enter name of the author">
+        <input class="form-control mx-auto w-auto" type = "text" name = "genre" required placeholder="Enter genre of the book">
+        Upload the cover page
+        <input type="file"  accept="image/*" name="cover" value="toBinary(this)" required >
+        Upload the book
+        <input type="file" accept=".pdf" name="book" value="toBinary(this)" onchange="toBinary(this)" required>
+        <button class="btn btn-primary" type="submit">Upload</button>
+    </form>
+
+{% endblock %}

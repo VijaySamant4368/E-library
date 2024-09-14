@@ -23,8 +23,7 @@
             <tr>
                 <td>Name: {{ book["name"] }}</td>
                 <td>Author: {{ book["author"] }}</td>
-                <td>Price: {{ book["price"] }}</td>
-                <td>Genre {{% for genre in book["genre"] %}}
+                <td>Genre {% for genre in book["genre"] %}
                     {{ genre }}
                     {% endfor %}
                 </td>
