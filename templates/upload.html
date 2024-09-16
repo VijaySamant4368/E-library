@@ -13,13 +13,166 @@
     
     <form method="post" action="/upload" enctype="multipart/form-data">
         <input class="form-control mx-auto w-auto" type = "text" name = "name" required placeholder="Enter name of the book">
-        <input class="form-control mx-auto w-auto" type = "text" name = "author" required placeholder="Enter name of the author">
-        <input class="form-control mx-auto w-auto" type = "text" name = "genre" required placeholder="Enter genre of the book">
+           
+        <label for="authorInput">Enter author(s) of the book:</label>
+        <input id="authorInput" list="authors" type="text" name="author" placeholder="Enter author(s) of the book">
+        <datalist id="authors">
+            {% for author in authors %}
+                <option value="{{ author.name }}"></option>
+            {% endfor %} 
+        </datalist>
+        <div id="authorContainer" class="author-container">
+            <!-- Dynamically added author text areas will appear here -->
+        </div>
+        
+        <label for="genreInput">Enter genre of the book:</label>
+        <input id="genreInput" list="genres" type="text" name="genre" placeholder="Enter genre of the book">
+        <datalist id="genres">
+            {% for genre in genres %}
+                <option value="{{ genre.name }}"></option>
+            {% endfor %}
+        </datalist>
+    
+        <div id="genreContainer" class="genre-container">
+            <!-- Dynamically added genre text areas will appear here -->
+        </div>
+        
         Upload the cover page
         <input type="file"  accept="image/*" name="cover" value="toBinary(this)" required >
         Upload the book
         <input type="file" accept=".pdf" name="book" value="toBinary(this)" onchange="toBinary(this)" required>
         <button class="btn btn-primary" type="submit">Upload</button>
     </form>
+
+    
+    <script>
+
+        entered_genres = []
+
+        document.getElementById('genreInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addGenre();
+            }
+        });
+
+        function addGenre() {
+            const input = document.getElementById('genreInput');
+            const genre = input.value.trim().toLowerCase();
+            if (genre === '') return;
+            console.log("Current Genre:" + genre)
+            for (var i = 0; i < entered_genres.length; i++) {
+                typed_genre = entered_genres[i];
+                if (typed_genre == genre){
+                     return;
+                }
+                console.log("Unequal")
+            }
+
+            entered_genres.push(genre);
+            console.log("Pushed genre: " + genre)
+
+            // Create a new genre item
+            const genreContainer = document.getElementById('genreContainer');
+            const genreItem = document.createElement('div');
+            genreItem.className = 'genre-item';
+            genreItem.innerHTML = `
+                <input type="text" name="genre" value="${genre}" readonly>
+                <button type="button" onclick="removeGenre(this)">X</button>
+            `;
+
+            // Add the new genre item to the container
+            genreContainer.appendChild(genreItem);
+
+            // Clear the input field
+            input.value = '';
+        }
+
+        function removeGenre(button) {
+            const genreItem = button.parentElement;
+
+            // Get all genre items
+            const genreItems = document.querySelectorAll('.genre-item');
+
+            // Loop through each item and log the input value
+            genreItems.forEach(item => {
+                const input = item.querySelector('input');
+                genre_value = input.value;
+            });
+            const index = entered_genres.indexOf(genre_value);
+            if (index > -1) { // only splice array when item is found
+              entered_genres.splice(index, 1); // 2nd parameter means remove one item only
+            }
+
+            console.log("After removal, the array is: " + entered_genres)
+            
+            genreItem.remove();
+        }
+
+        
+        entered_authors = []
+
+        document.getElementById('authorInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addAuthor();
+            }
+        });
+
+        
+        function addAuthor() {
+            const input = document.getElementById('authorInput');
+            const author = input.value.trim().toLowerCase();
+            if (author === '') return;
+            for (var i = 0; i < entered_authors.length; i++) {
+                typed_author = entered_authors[i];
+                if (typed_author == author){
+                     return;
+                }
+                console.log("Unequal")
+            }
+
+            entered_authors.push(author);
+            console.log("Pushed author: " + author)
+
+            // Create a new author item
+            const authorContainer = document.getElementById('authorContainer');
+            const authorItem = document.createElement('div');
+            authorItem.className = 'author-item';
+            authorItem.innerHTML = `
+                <input type="text" name="author" value="${author}" readonly>
+                <button type="button" onclick="removeAuthor(this)">X</button>
+            `;
+
+            // Add the new author item to the container
+            authorContainer.appendChild(authorItem);
+
+            // Clear the input field
+            input.value = '';
+        }
+
+        
+        function removeAuthor(button) {
+            const authorItem = button.parentElement;
+
+            // Get all author items
+            const authorItems = document.querySelectorAll('.author-item');
+
+            // Loop through each item and log the input value
+            authorItems.forEach(item => {
+                const input = item.querySelector('input');
+                author_value = input.value;
+            });
+            const index = entered_authors.indexOf(author_value);
+            if (index > -1) { // only splice array when item is found
+              entered_authors.splice(index, 1); // 2nd parameter means remove one item only
+            }
+
+            console.log("After removal, the array is: " + entered_authors)
+            
+            authorItem.remove();
+        }
+
+    </script>
 
 {% endblock %}

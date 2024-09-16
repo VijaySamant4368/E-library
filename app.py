@@ -59,15 +59,15 @@ def shelf():
 
 @app.route("/search", methods=["GET", "POST"])
 def search():
-    if request.method == "POST":
-        search = request.form.get("book_search")
-        searched_books = db.execute ("SELECT * FROM books WHERE author LIKE ? OR name LIKE ?", "%"+search+"%", "%"+search+"%")
+    if request.method == "GET":
+        search = request.args["book_search"]
+        searched_books = db.execute ("SELECT * FROM books WHERE name LIKE ?",  "%"+search+"%")
         books = []
         for book in searched_books:
             temp_book = dict()
             temp_book["name"] = book["name"]
-            temp_book["author"] = book["author"]
-            temp_book["genre"] = book["genre"]
+            temp_book["author"] = getBookAuthor(book["id"])
+            temp_book["genre"] = getBookGenre(book["id"])
             temp_book["uploader"] = db.execute("SELECT * FROM users WHERE id = ?", book["uploader_id"])[0]
             temp_book["id"] = book["id"]  # Will need the book ID to fetch the image
 
@@ -110,25 +110,27 @@ def upload():
     user_id = session["user_id"]
     if request.method == "POST":
         name = request.form.get("name")
-        author = request.form.get("author")
-        genre = request.form.get("genre")
+        author_list = request.form.getlist("author")
+        genre_list = request.form.getlist("genre")
+        addGenres(genre_list)
+        addAuthors(author_list)
+
         cover = request.files.get("cover")
         book = request.files.get("book")
-        print(author)
-        print(genre)
-        print(type(cover))
-        print(cover)
-        # Open the image file in binary mode
-
         binary_cover = cover.read()
         binary_book = book.read()
-
-        db.execute("INSERT INTO books(name, author, genre, book, cover, uploader_id) VALUES (?, ?, ?, ?, ?, ?);", 
-                                                name, author, genre, binary_book, binary_cover, user_id)
-
-        return render_template("upload.html", message=f"Book name: {name}, by {author}, of genre {genre}")
+        
+        db.execute("INSERT INTO books(name, book, cover, uploader_id) VALUES (?, ?, ?, ?);", 
+                                                name,  binary_book, binary_cover, user_id)
+        book_id = db.execute("SELECT * FROM books ORDER BY id DESC LIMIT 1;")[0]["id"]
+        addGenresToBook(genre_list, book_id)
+        addAuthorsToBook(author_list, book_id)
+        return render_template("upload.html", message=f"Book name: {name}, by {author_list}, of genre {genre_list}")
+    
     elif request.method == "GET":
-        return render_template("upload.html", message="")
+        genres = db.execute("SELECT * FROM genres")
+        authors = db.execute("SELECT * FROM authors")
+        return render_template("upload.html", message="", genres = genres, authors = authors )
 
 
 
@@ -333,4 +335,71 @@ def register():
 #             stocks.append(stock["symbol"])
 #         return render_template("sell.html", symbols = stocks)
 
+def addGenres(genre_list:list[str]) ->None:
+    print(genre_list)
+    old_genres = db.execute("SELECT name FROM genres;")
+    old_genre_list = []
+    for old_genre in old_genres:
+        old_genre_list.append(old_genre["name"])
+    for genre in genre_list:
+        if genre.strip().lower() not in old_genre_list and genre.strip().lower():
+            db.execute ("INSERT INTO genres(name) VALUES (?)", genre)
+            old_genre_list += genre 
 
+def addGenresToBook(genre_list:list[str], book_id:int)  -> None:
+    for genre in genre_list:
+        if not genre:   #if Whitespace
+            continue
+        genre_id = db.execute("SELECT id FROM genres WHERE name = ?;", genre)[0]["id"]
+        db.execute("INSERT INTO bookGenres(book_id, genre_id) VALUES (? ,?);", book_id, genre_id)
+
+def getBookGenre(book_id:int)   -> list[str]:
+    genre_table = db.execute("SELECT name FROM genres WHERE id IN (SELECT genre_id FROM bookGenres WHERE book_id = ?);", book_id)
+    #if no genre mentioned, table bookGenres won't have any value
+    if not genre_table:
+        return ["Genre not mentioned"]
+
+    genre_list = []
+    for genre_row in genre_table:
+        genre_list.append(genre_row["name"])
+    return genre_list
+    
+def getBooksByAuthor(author_id_list:list[int]):
+    books_id = []
+    for author_id in author_id_list:
+        books_table = db.execute("SELECT id FROM books WHERE author_id = ?;", author_id)
+        for books_row in books_table:
+            books_id.append(books_row[id])
+    return books_id
+
+def addAuthors(author_list:list[str]) ->None:
+    """
+    Adds unknown authors to table of authors
+    """
+    print(author_list)
+    old_authors = db.execute("SELECT name FROM authors;")
+    old_author_list = []
+    for old_author in old_authors:
+        old_author_list.append(old_author["name"])
+    for author in author_list:
+        if author.strip().lower() not in old_author_list and author.strip().lower():
+            db.execute ("INSERT INTO authors(name) VALUES (?)", author)
+            old_author_list += author 
+    
+def addAuthorsToBook(author_list:list[str], book_id:int)  -> None:
+    for author in author_list:
+        if not author:   #if Whitespace
+            continue
+        author_id = db.execute("SELECT id FROM authors WHERE name = ?;", author)[0]["id"]
+        db.execute("INSERT INTO bookAuthors(book_id, author_id) VALUES (? ,?);", book_id, author_id)
+
+def getBookAuthor(book_id:int)  -> list[str]:
+    author_table = db.execute("SELECT name FROM authors WHERE id IN (SELECT author_id FROM bookAuthors WHERE book_id = ?);", book_id)
+    #if no author mentioned, table bookauthors won't have any value
+    if not author_table:
+        return ["author not mentioned"]
+
+    author_list = []
+    for author_row in author_table:
+        author_list.append(author_row["name"])
+    return author_list

@@ -10,18 +10,30 @@
     <ul>
         {% for book in books %}
         <li>
-            <h2>{{ book.name }}</h2>
-            <p>Author: {{ book.author }}</p>
-            <p>Genre: {{ book.genre }}</p>
-            <p>Uploaded by: {{book.uploader.username}}</p>
-            {% if book.id %}
-                <img src="{{ url_for('cover', book_id=book.id) }}" alt="{{ book.name }} cover" style="width:100px;height:auto;">
-                <!-- <embed src="{{ url_for('book', book_id=book.id) }}" alt="{{ book.name }} pdf" width="800px" height="2100px" /> -->
-                <iframe src="{{ url_for('book', book_id=book.id) }}" alt="{{ book.name }} pdf" style="width: 100%;height: 100%;border: none;"></iframe>    
-            {% endif %}
+            <div id ="book{{book.id}}BasicInfo" class = "bookBasicInfo">
+                <div>
+                {% if book.id %}
+                    <a href ="{{ url_for('cover', book_id = book.id) }}" >
+                        <img src="{{ url_for('cover', book_id=book.id) }}" alt="{{ book.name }} cover">
+                    </a>
+                    <!-- <embed src="{{ url_for('book', book_id=book.id) }}" alt="{{ book.name }} pdf" width="800px" height="2100px" /> -->
+                    <!-- <iframe src="{{ url_for('book', book_id=book.id) }}" alt="{{ book.name }} pdf" style="width: 100%;height: 100%;border: none;"></iframe>     -->
+                {% endif %}
+                </div>
+                <div>
+                    <h2>{{ book.name }}</h2>
+                    <p>Author: {{ book.author }}</p>
+                    <p>Genre: {{ book.genre }}</p>
+                    <p>Uploaded by: {{book.uploader.username}}</p>
+                    <a href="{{ url_for('book', book_id=book.id) }}"><button class="readBook" id = "readBook{{book.id}}">READ</button></a>
+                </div>
+            </div>
         </li>
         {% endfor %}
     </ul>
+
+    
+    <link href="/static/book.css" rel="stylesheet">
     
 
 {% endblock %}
