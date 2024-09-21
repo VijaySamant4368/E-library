@@ -62,18 +62,9 @@ def search():
     if request.method == "GET":
         search = request.args["book_search"]
         searched_books = db.execute ("SELECT * FROM books WHERE name LIKE ?",  "%"+search+"%")
-        books = []
-        for book in searched_books:
-            temp_book = dict()
-            temp_book["name"] = book["name"]
-            temp_book["author"] = getBookAuthor(book["id"])
-            temp_book["genre"] = getBookGenre(book["id"])
-            temp_book["uploader"] = db.execute("SELECT * FROM users WHERE id = ?", book["uploader_id"])[0]
-            temp_book["id"] = book["id"]  # Will need the book ID to fetch the image
-
-            books.append(temp_book)
+        books = getBooksDetails(searched_books)
             
-        return render_template("search.html", books = books)
+        return render_template("search.html", books = books, message =  f"Showing results for query '{search}'")
         # return "<img src='data:image/jpeg;base64, " + base64.b64encode(uploaded_file.read()).decode('ascii') + "'>"
 
 
@@ -104,6 +95,33 @@ def book(book_id):
         'inline; filename=%s.pdf' % 'yourfilename'
     return response
 
+@app.route("/author/<int:author_id>")
+def author(author_id):
+    author_name = db.execute("SELECT name FROM authors WHERE id = ?;", author_id)[0]["name"]
+    
+    searched_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM bookAuthors WHERE author_id = ?);", (author_id,))
+
+    if searched_books is None:
+        abort(404)  # book not found
+
+        
+    books = getBooksDetails(searched_books)
+
+    return render_template("search.html", books = books, message =  f"Showing results for Author '{author_name}'")
+
+@app.route("/genre/<int:genre_id>")
+def genre(genre_id):
+    genre_name = db.execute("SELECT name FROM genres WHERE id = ?;", genre_id)[0]["name"]
+    searched_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM bookGenres WHERE genre_id = ?);", (genre_id,))
+
+    if searched_books is None:
+        abort(404)  # book not found
+
+        
+    books = getBooksDetails(searched_books)
+
+    return render_template("search.html", books = books, message = f"Showing results for Genre '{genre_name}'")
+
 @app.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload():
@@ -133,24 +151,6 @@ def upload():
         return render_template("upload.html", message="", genres = genres, authors = authors )
 
 
-
-# @app.route("/history")
-# @login_required
-# def history():
-#     """Show history of transactions"""
-#     user_id = session["user_id"]
-#     history = []
-#     transctions = db.execute("SELECT * FROM history WHERE user_id = ?;", user_id)
-#     for transction in transctions:
-#         action = db.execute("SELECT * FROM TRANSACTION_ACTIVITY WHERE id = ?", transction["action"]) [0] ["action"]
-#         symbol = transction["symbol"]
-#         quantity = transction["quantity"]
-#         price = usd(transction["price"])
-#         time = transction["date_time"]
-
-#         history. append( { "action" : action , "symbol" : symbol, "quantity" : quantity, "price" : price, "time" : time })
-
-#     return render_template("history.html", history = history)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -205,65 +205,6 @@ def logout():
     return redirect("/")
 
 
-# @app.route("/quote", methods=["GET", "POST"])
-# @login_required
-# def quote():
-#     """Get stock quote."""
-#     if request.method=="POST":
-#         symbol = request.form.get("symbol")
-#         stock = lookup(symbol)
-#         if stock:
-#             return render_template("quote.html", result="price of one share of "+stock["symbol"]+" is "+usd(stock["price"]))
-#         else:
-#             return apology("invalid symbol", 400)
-#     else:
-#         return render_template("quote.html", result="")
-#     # return apology("TODO")
-
-
-# @app.route("/buy", methods=["GET", "POST"])
-# @login_required
-# def buy():
-#     """Buy shares of stock"""
-#     if request.method=="POST":
-#         symbol = request.form.get("symbol")
-#         if not symbol:
-#             return apology("missing symbol", 400)
-
-#         try:
-#             quantity=int(request.form.get("shares") )
-#         except:
-#             return apology("invalid number of shares", 400)
-#         if(quantity<1):
-#             return apology("invalid number of shares", 400)
-
-#         stock=lookup(symbol)
-#         if not stock:
-#             return apology("invalid symbol", 400)
-
-#         ###LOGIC FOR ADDING DATA TO A NEW DATABASE AND DEDUCTINGG MONEY
-#         price = stock["price"]
-#         total = price*quantity
-#         user_id = session["user_id"]
-#         balance = db.execute("SELECT cash FROM users WHERE id=?", user_id)[0]["cash"]
-#         if total>balance:
-#             return apology("Not enough cash in balance", 400)
-
-#         owned_qunatity = db.execute("SELECT quantity  FROM stocks WHERE user_id=? AND symbol=? ", user_id, symbol)
-#         db.execute("UPDATE users SET cash=? WHERE id=?", balance-total, user_id)
-
-#         if owned_qunatity:
-#             db.execute("UPDATE stocks SET quantity=? WHERE user_id=? AND symbol=?", owned_qunatity[0]["quantity"]+quantity, user_id, symbol)
-#         else:
-#             db.execute("INSERT INTO stocks(user_id, symbol, quantity) VALUES (?,?,?)", user_id, symbol, quantity )
-
-#         # action 1 == Buy
-#         import datetime
-#         db.execute("INSERT INTO history(user_id, symbol, quantity, price, action, date_time) VALUES (?,?,?,?, 1, ?);", user_id, symbol, quantity, price, datetime.datetime.now())
-
-#         return redirect("/")
-#     else:
-#         return render_template("buy.html", message="")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -294,47 +235,6 @@ def register():
         return render_template("register.html", message="")
 
 
-# @app.route("/sell", methods=["GET", "POST"])
-# @login_required
-# def sell():
-#     """Sell shares of stock"""
-#     if request.method == "POST":
-#         symbol = request.form.get("symbol")
-#         if not symbol:
-#             return apology("missing symbol", 400)
-
-#         try:
-#             quantity=int(request.form.get("shares") )
-#         except:
-#             return apology("invalid number of shares", 400)
-#         if(quantity<1):
-#             return apology("invalid number of shares", 400)
-
-#         user_id = session["user_id"]
-
-#         owned_qunatity = db.execute("SELECT * FROM stocks WHERE user_id = ? AND symbol = ?", user_id, symbol)
-#         if ( len(owned_qunatity)==0 or owned_qunatity[0]["quantity"]<quantity):
-#             return apology("Not Enough number of shares", 400)
-
-#         #symbol would be valid since it was there in the useer's bought shares
-#         price = lookup(symbol)["price"]
-#         total = price*quantity
-#         owned_cash = db.execute("SELECT * FROM users WHERE id = ?", user_id)[0]["cash"]
-#         db.execute("UPDATE users SET cash = ? WHERE id = ?", owned_cash+total, user_id)
-#         db.execute("UPDATE stocks SET quantity = ? WHERE user_id = ? AND symbol=?", owned_qunatity[0]["quantity"]-quantity, user_id, symbol)
-
-#         # action 2 == Sell
-#         db.execute("INSERT INTO history(user_id, symbol, quantity, price, action, date_time) VALUES (?,?,?,?, 2, ?);", user_id, symbol, quantity, price, datetime.datetime.now())
-
-#         return redirect("/")
-
-#     else:
-#         stocks=[]
-#         user_stocks= db.execute("SELECT * FROM stocks WHERE user_id  = ?", session["user_id"])
-#         for stock in user_stocks:
-#             stocks.append(stock["symbol"])
-#         return render_template("sell.html", symbols = stocks)
-
 def addGenres(genre_list:list[str]) ->None:
     print(genre_list)
     old_genres = db.execute("SELECT name FROM genres;")
@@ -354,14 +254,17 @@ def addGenresToBook(genre_list:list[str], book_id:int)  -> None:
         db.execute("INSERT INTO bookGenres(book_id, genre_id) VALUES (? ,?);", book_id, genre_id)
 
 def getBookGenre(book_id:int)   -> list[str]:
-    genre_table = db.execute("SELECT name FROM genres WHERE id IN (SELECT genre_id FROM bookGenres WHERE book_id = ?);", book_id)
+    genre_table = db.execute("SELECT name,id FROM genres WHERE id IN (SELECT genre_id FROM bookGenres WHERE book_id = ?);", book_id)
     #if no genre mentioned, table bookGenres won't have any value
     if not genre_table:
         return ["Genre not mentioned"]
 
     genre_list = []
     for genre_row in genre_table:
-        genre_list.append(genre_row["name"])
+        genre_details = dict()
+        genre_details["name"] = genre_row["name"]
+        genre_details["id"] = genre_row["id"]
+        genre_list.append(genre_details)
     return genre_list
     
 def getBooksByAuthor(author_id_list:list[int]):
@@ -394,12 +297,28 @@ def addAuthorsToBook(author_list:list[str], book_id:int)  -> None:
         db.execute("INSERT INTO bookAuthors(book_id, author_id) VALUES (? ,?);", book_id, author_id)
 
 def getBookAuthor(book_id:int)  -> list[str]:
-    author_table = db.execute("SELECT name FROM authors WHERE id IN (SELECT author_id FROM bookAuthors WHERE book_id = ?);", book_id)
+    author_table = db.execute("SELECT name, id FROM authors WHERE id IN (SELECT author_id FROM bookAuthors WHERE book_id = ?);", book_id)
     #if no author mentioned, table bookauthors won't have any value
     if not author_table:
         return ["author not mentioned"]
 
     author_list = []
     for author_row in author_table:
-        author_list.append(author_row["name"])
+        author_details = dict()
+        author_details["name"] = author_row["name"]
+        author_details["id"] = author_row["id"]
+        author_list.append(author_details)
     return author_list
+
+def getBooksDetails(searched_books):
+    books = []
+    for book in searched_books:
+        temp_book = dict()
+        temp_book["name"] = book["name"]
+        temp_book["author"] = getBookAuthor(book["id"])
+        temp_book["genre"] = getBookGenre(book["id"])
+        temp_book["uploader"] = db.execute("SELECT * FROM users WHERE id = ?", book["uploader_id"])[0]
+        temp_book["id"] = book["id"]  # Will need the book ID to fetch the image
+
+        books.append(temp_book)
+    return books

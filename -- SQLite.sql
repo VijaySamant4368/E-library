@@ -63,9 +63,10 @@ SELECT * FROM users;
 -- delete from sqlite_sequence where name='books';
 -- delete from bookGenres;    
 -- delete from sqlite_sequence where name='bookGenres';
-delete from books;    
-delete from sqlite_sequence where name='books';
-
+-- delete from authors;    
+-- delete from sqlite_sequence where name='authors';
+-- delete from bookAuthors;    
+-- delete from sqlite_sequence where name='bookAuthors';
 
 
 -- delete from genres;
@@ -85,8 +86,12 @@ delete from sqlite_sequence where name='books';
 --     FOREIGN KEY (author_id) REFERENCES authors(id)
 -- );
 
--- SELECT * from genres;
-SELECT id, name FROM books;
+SELECT * from genres;
+SELECT * from books;
+SELECT * FROM authors;
+SELECT * FROM owners;
+SELECT * FROM bookAuthors;
+SELECT * FROM bookGenres;
 -- DELETE FROM owners;
 -- SELECT * FROM bookGenres;
 -- SELECT * FROM bookAuthors;
