@@ -85,12 +85,13 @@ delete from sqlite_sequence where name='books';
 --     FOREIGN KEY (author_id) REFERENCES authors(id)
 -- );
 
-SELECT * from genres;
+-- SELECT * from genres;
 SELECT id, name FROM books;
-SELECT * FROM bookGenres;
-SELECT * FROM bookAuthors;
+-- DELETE FROM owners;
+-- SELECT * FROM bookGenres;
+-- SELECT * FROM bookAuthors;
 
-PRAGMA page_count;
-PRAGMA page_size;
+-- PRAGMA page_count;
+-- PRAGMA page_size;
 
-VACUUM;
+-- VACUUM;
