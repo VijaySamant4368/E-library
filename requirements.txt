@@ -2,5 +2,7 @@ cs50 >= 9.3.4
 Flask >= 3.0.3
 Flask-Session >= 0.8.0
 werkzeug >=3.0.4
+<<<<<<< HEAD
 pytz
 requests
+gunicorn 
