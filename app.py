@@ -42,20 +42,27 @@ def shelf():
     user = db.execute("SELECT * FROM users WHERE id = ?", user_id)[0]
     # try:    
     if True:
-        owned_books = db.execute("SELECT * FROM owners WHERE owner_id = ?", user_id)
-        
-        shelf = []
-        for book in owned_books:
-            book_details = dict()
-            book_details["name"] == book["name"]
-            book_details["author"] == book["author"]
-            book_details["genre"] == list( book["genre"] )
-            shelf.append(book_details)
+        owned_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM owners WHERE owner_id = ?);", user_id)
+        print(len(owned_books))
+        shelf = getBooksDetails(owned_books)
     # except RuntimeError:    #no such column: id (The user doen't own anything )
     #     db.execute ("INSERT INTO owners (owner_id, book_id) values (?, 0);", user_id)
     #     shelf = [ {"name": "None", "author": "", "genre": list() } ]
 
     return render_template("shelf.html", username = user["username"], shelf= shelf)
+
+@app.route("/my-uploads")
+@login_required #Commented this so that I don't have to login again and again
+def myUploads():
+    user_id = session["user_id"]
+    user = db.execute("SELECT * FROM users WHERE id = ?", user_id)[0]
+    # try:    
+    if True:
+        owned_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM owners WHERE owner_id = ?);", user_id)
+        print(len(owned_books))
+        uploaded_books = getBooksDetails(owned_books)
+
+    return render_template("myUploads.html", username = user["username"], uploaded_books= uploaded_books)
 
 @app.route("/search", methods=["GET", "POST"])
 def search():
@@ -122,6 +129,21 @@ def genre(genre_id):
 
     return render_template("search.html", books = books, message = f"Showing results for Genre '{genre_name}'")
 
+@app.route("/owner/<int:owner_id>")
+def owner(owner_id):
+    owner_name = db.execute("SELECT username FROM users WHERE id = ?;", owner_id)[0]["username"]
+    searched_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM owners WHERE owner_id = ?);", owner_id)
+
+    if searched_books is None:
+        abort(404)  # book not found
+
+        
+    books = getBooksDetails(searched_books)
+
+    print(len(books))
+
+    return render_template("search.html", books = books, message = f"Showing results for books uploaded by '{owner_name}'")
+
 @app.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload():
@@ -143,6 +165,8 @@ def upload():
         book_id = db.execute("SELECT * FROM books ORDER BY id DESC LIMIT 1;")[0]["id"]
         addGenresToBook(genre_list, book_id)
         addAuthorsToBook(author_list, book_id)
+        print("book id: ", book_id, "\nuser_id: ", user_id)
+        db.execute("INSERT INTO owners(owner_id, book_id) VALUES(?, ?);", user_id, book_id)
         return render_template("upload.html", message=f"Book name: {name}, by {author_list}, of genre {genre_list}")
     
     elif request.method == "GET":
@@ -236,6 +260,11 @@ def register():
 
 
 def addGenres(genre_list:list[str]) ->None:
+    """Add unknown genres to the list of authors, firstly checking if they are not already there
+
+    Args:
+        genre_list (list[str]): The list of known and unknown genres
+    """
     print(genre_list)
     old_genres = db.execute("SELECT name FROM genres;")
     old_genre_list = []
@@ -247,6 +276,12 @@ def addGenres(genre_list:list[str]) ->None:
             old_genre_list += genre 
 
 def addGenresToBook(genre_list:list[str], book_id:int)  -> None:
+    """Inserts "book_id" and all the corresponding "genre_id"(s) into the table "boookGenres"
+
+    Args:
+        genre_list (list[str]): The list of name of the genre(s)
+        book_id (int): The id of the book
+    """
     for genre in genre_list:
         if not genre:   #if Whitespace
             continue
@@ -254,10 +289,18 @@ def addGenresToBook(genre_list:list[str], book_id:int)  -> None:
         db.execute("INSERT INTO bookGenres(book_id, genre_id) VALUES (? ,?);", book_id, genre_id)
 
 def getBookGenre(book_id:int)   -> list[str]:
+    """Returns a list of all genres of a given book. If no genre mentioned, returns [{"name": "genre not mentioned", "id":0}]
+
+    Args:
+        book_id (int): The id of the book whose authors are required
+
+    Returns:
+        list[dict]: List of dict of all the genres, with key 'name' as the name of the genre, and 'id' as the genre id
+    """
     genre_table = db.execute("SELECT name,id FROM genres WHERE id IN (SELECT genre_id FROM bookGenres WHERE book_id = ?);", book_id)
     #if no genre mentioned, table bookGenres won't have any value
     if not genre_table:
-        return ["Genre not mentioned"]
+        return [{"name": "genre not mentioned", "id":0}]
 
     genre_list = []
     for genre_row in genre_table:
@@ -267,17 +310,26 @@ def getBookGenre(book_id:int)   -> list[str]:
         genre_list.append(genre_details)
     return genre_list
     
-def getBooksByAuthor(author_id_list:list[int]):
+def getBooksByAuthor(author_id_list:list[int])  -> list[id]:
+    """Returns list of book_id(s) by given authors
+
+    Args:
+        author_id_list (list[int]): The list of the author_id(s)
+
+    Returns:
+        list[id]: List of book_id(s) by given author(s)
+    """
     books_id = []
-    for author_id in author_id_list:
-        books_table = db.execute("SELECT id FROM books WHERE author_id = ?;", author_id)
-        for books_row in books_table:
-            books_id.append(books_row[id])
+    books_table = db.execute("SELECT id FROM books WHERE author_id IN (?);", author_id_list)
+    for books_row in books_table:
+        books_id.append(books_row[id])
     return books_id
 
 def addAuthors(author_list:list[str]) ->None:
-    """
-    Adds unknown authors to table of authors
+    """Add unknown authors to the list of authors, firstly checking if they are not already there
+
+    Args:
+        author_list (list[str]): The list of known and unknown authors
     """
     print(author_list)
     old_authors = db.execute("SELECT name FROM authors;")
@@ -290,17 +342,31 @@ def addAuthors(author_list:list[str]) ->None:
             old_author_list += author 
     
 def addAuthorsToBook(author_list:list[str], book_id:int)  -> None:
+    """Insert "book_id" and all the corresponding "author_id"(s) into the table "boookAuthors"
+
+    Args:
+        author_list (list[str]): The list of name of the author(s)
+        book_id (int): The id of the book
+    """
     for author in author_list:
         if not author:   #if Whitespace
             continue
         author_id = db.execute("SELECT id FROM authors WHERE name = ?;", author)[0]["id"]
         db.execute("INSERT INTO bookAuthors(book_id, author_id) VALUES (? ,?);", book_id, author_id)
 
-def getBookAuthor(book_id:int)  -> list[str]:
+def getBookAuthor(book_id:int)  -> list[dict]:
+    """Returns a list of all authors of a given book. If no author mentioned, returns [{"name": "author not mentioned", "id":0}]
+
+    Args:
+        book_id (int): The id of the book whose authors are required
+
+    Returns:
+        list[dict]: List of dict of all the authors, with key 'name' as the name of the author, and 'id' as the author id
+    """
     author_table = db.execute("SELECT name, id FROM authors WHERE id IN (SELECT author_id FROM bookAuthors WHERE book_id = ?);", book_id)
     #if no author mentioned, table bookauthors won't have any value
     if not author_table:
-        return ["author not mentioned"]
+        return [{"name": "author not mentioned", "id":0}]
 
     author_list = []
     for author_row in author_table:
@@ -310,14 +376,36 @@ def getBookAuthor(book_id:int)  -> list[str]:
         author_list.append(author_details)
     return author_list
 
-def getBooksDetails(searched_books):
+def getBookOwner(uploader_id:int)   -> dict:
+    """Returns a dict with uploader details
+
+    Args:
+        uploader_id (int): The id of the uploader
+
+    Returns:
+        dict: dict with 'name' as the username of the uploader and 'id' as the id of the user
+    """
+    owner = db.execute("SELECT * FROM users WHERE id = ?", uploader_id)[0]
+    owner_name = db.execute("SELECT username FROM users WHERE id = ?;", uploader_id)[0]["username"]
+    return {"name": owner_name, "id": owner["id"]}
+
+
+def getBooksDetails(searched_books:list[dict]) -> list[dict]:
+    """Given a list of books, returns a list of dicts with required format to be passed to HTML
+
+    Args:
+        searched_books (list[dict]): List of dicts of different books, with basic infos from the books Table
+
+    Returns:
+        list[dict]: List of dicts of books with advance details
+    """
     books = []
     for book in searched_books:
         temp_book = dict()
         temp_book["name"] = book["name"]
         temp_book["author"] = getBookAuthor(book["id"])
         temp_book["genre"] = getBookGenre(book["id"])
-        temp_book["uploader"] = db.execute("SELECT * FROM users WHERE id = ?", book["uploader_id"])[0]
+        temp_book["uploader"] = getBookOwner(book["uploader_id"])
         temp_book["id"] = book["id"]  # Will need the book ID to fetch the image
 
         books.append(temp_book)

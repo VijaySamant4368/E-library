@@ -61,12 +61,14 @@ SELECT * FROM users;
 
 -- delete from books;    
 -- delete from sqlite_sequence where name='books';
--- delete from bookGenres;    
--- delete from sqlite_sequence where name='bookGenres';
 -- delete from authors;    
 -- delete from sqlite_sequence where name='authors';
+-- delete from owners;    
+-- delete from sqlite_sequence where name='owners';
 -- delete from bookAuthors;    
 -- delete from sqlite_sequence where name='bookAuthors';
+-- delete from bookGenres;    
+-- delete from sqlite_sequence where name='bookGenres';
 
 
 -- delete from genres;
@@ -77,24 +79,14 @@ SELECT * FROM users;
 
 -- INSERT INTO genres (name, about) values ("fantasy", "In popular culture, the fantasy genre predominantly features settings that emulate Earth, but with a sense of otherness. In its broadest sense, however, fantasy consists of works by many writers, artists, filmmakers, and musicians from ancient myths and legends to many recent and popular works.");
 
--- CREATE TABLE bookAuthors (
---     book_id INTEGER,
---     author_id INTEGER,
---     PRIMARY KEY (book_id, author_id),
-    
---     FOREIGN KEY (book_id) REFERENCES books(id),
---     FOREIGN KEY (author_id) REFERENCES authors(id)
--- );
 
+SELECT * FROM users;
 SELECT * from genres;
 SELECT * from books;
 SELECT * FROM authors;
 SELECT * FROM owners;
 SELECT * FROM bookAuthors;
 SELECT * FROM bookGenres;
--- DELETE FROM owners;
--- SELECT * FROM bookGenres;
--- SELECT * FROM bookAuthors;
 
 -- PRAGMA page_count;
 -- PRAGMA page_size;
