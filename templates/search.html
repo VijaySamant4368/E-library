@@ -22,17 +22,19 @@
                 </div>
                 <div>
                     <h2>{{ book.name }}</h2>
-                    <p>Author: {% for author in book["author"] %}
+                    <p>Author: |{% for author in book["author"] %}
                         <a href="{{ url_for('author', author_id=author.id) }}">
                             {{ author.name }}
-                            <br>
-                        </a>
+                        </a>|
+                        <br>
+                        {% if not loop.last %} | {% endif %}
                         {% endfor %}</p>
-                    <p>Genre: {% for genre in book["genre"] %}
+                    <p>Genre: |{% for genre in book["genre"] %}
                         <a href="{{ url_for('genre', genre_id=genre.id) }}">
                             {{ genre.name }}
-                            <br>
-                        </a>
+                        </a>|
+                        <br>
+                        {% if not loop.last %} | {% endif %}
                         {% endfor %}</p>
                     <p>Uploaded by: 
                         <a href="{{ url_for('owner', owner_id=book.uploader.id) }}">
