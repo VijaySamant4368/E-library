@@ -4,7 +4,7 @@ import os
 import datetime
 
 from cs50 import SQL
-from flask import Flask, abort, flash, make_response, redirect, render_template, request, send_file, session
+from flask import Flask, abort, flash, make_response, redirect, render_template, request, send_file, session, jsonify
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -35,6 +35,8 @@ def after_request(response):
 
 
 @app.route("/")
+
+@app.route("/shelf")
 @login_required #Commented this so that I don't have to login again and again
 def shelf():
     """Show portfolio of stocks"""
@@ -42,9 +44,9 @@ def shelf():
     user = db.execute("SELECT * FROM users WHERE id = ?", user_id)[0]
     # try:    
     if True:
-        owned_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM owners WHERE owner_id = ?);", user_id)
+        owned_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM shelves WHERE user_id = ?);", user_id)
         print(len(owned_books))
-        shelf = getBooksDetails(owned_books)
+        shelf = getBooksDetails(owned_books, user_id)
     # except RuntimeError:    #no such column: id (The user doen't own anything )
     #     db.execute ("INSERT INTO owners (owner_id, book_id) values (?, 0);", user_id)
     #     shelf = [ {"name": "None", "author": "", "genre": list() } ]
@@ -60,16 +62,17 @@ def myUploads():
     if True:
         owned_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM owners WHERE owner_id = ?);", user_id)
         print(len(owned_books))
-        uploaded_books = getBooksDetails(owned_books)
+        uploaded_books = getBooksDetails(owned_books, user_id)
 
     return render_template("myUploads.html", username = user["username"], uploaded_books= uploaded_books)
 
 @app.route("/search", methods=["GET", "POST"])
 def search():
+    user_id = session["user_id"]
     if request.method == "GET":
         search = request.args["book_search"]
         searched_books = db.execute ("SELECT * FROM books WHERE name LIKE ?",  "%"+search+"%")
-        books = getBooksDetails(searched_books)
+        books = getBooksDetails(searched_books, user_id)
             
         return render_template("search.html", books = books, message =  f"Showing results for query '{search}'")
         # return "<img src='data:image/jpeg;base64, " + base64.b64encode(uploaded_file.read()).decode('ascii') + "'>"
@@ -104,6 +107,7 @@ def book(book_id):
 
 @app.route("/author/<int:author_id>")
 def author(author_id):
+    user_id = session["user_id"]
     author_name = db.execute("SELECT name FROM authors WHERE id = ?;", author_id)[0]["name"]
     
     searched_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM bookAuthors WHERE author_id = ?);", (author_id,))
@@ -112,12 +116,13 @@ def author(author_id):
         abort(404)  # book not found
 
         
-    books = getBooksDetails(searched_books)
+    books = getBooksDetails(searched_books, user_id)
 
     return render_template("search.html", books = books, message =  f"Showing results for Author '{author_name}'")
 
 @app.route("/genre/<int:genre_id>")
 def genre(genre_id):
+    user_id = session["user_id"]
     genre_name = db.execute("SELECT name FROM genres WHERE id = ?;", genre_id)[0]["name"]
     searched_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM bookGenres WHERE genre_id = ?);", (genre_id,))
 
@@ -131,6 +136,7 @@ def genre(genre_id):
 
 @app.route("/owner/<int:owner_id>")
 def owner(owner_id):
+    user_id = session["user_id"]
     owner_name = db.execute("SELECT username FROM users WHERE id = ?;", owner_id)[0]["username"]
     searched_books = db.execute("SELECT * FROM books WHERE id in (SELECT book_id FROM owners WHERE owner_id = ?);", owner_id)
 
@@ -138,7 +144,7 @@ def owner(owner_id):
         abort(404)  # book not found
 
         
-    books = getBooksDetails(searched_books)
+    books = getBooksDetails(searched_books, user_id)
 
     print(len(books))
 
@@ -390,18 +396,27 @@ def getBookOwner(uploader_id:int)   -> dict:
     return {"name": owner_name, "id": owner["id"]}
 
 
-def getBooksDetails(searched_books:list[dict]) -> list[dict]:
+def getBooksDetails(searched_books:list[dict], user_id:int = None) -> list[dict]:
     """Given a list of books, returns a list of dicts with required format to be passed to HTML
 
     Args:
         searched_books (list[dict]): List of dicts of different books, with basic infos from the books Table
+        user_id (int): User id of the current user. Defaults to None
 
     Returns:
         list[dict]: List of dicts of books with advance details
     """
+    
+    if user_id:
+        shelved_books = getShelvedBooksOfUser(user_id)
     books = []
     for book in searched_books:
         temp_book = dict()
+        if user_id:
+            if book["id"] in shelved_books:
+                temp_book["shelved"] = True
+            else:
+                temp_book["shelved"] = False
         temp_book["name"] = book["name"]
         temp_book["author"] = getBookAuthor(book["id"])
         temp_book["genre"] = getBookGenre(book["id"])
@@ -410,3 +425,40 @@ def getBooksDetails(searched_books:list[dict]) -> list[dict]:
 
         books.append(temp_book)
     return books
+
+def getShelvedBooksOfUser(user_id:int)  -> list[int]:
+    """_summary_
+
+    Args:
+        user_id (int): _description_
+
+    Returns:
+        list[int]: _description_
+    """
+
+    shelved_books_table = db.execute("SELECT book_id FROM shelves WHERE user_id = ?;", user_id)
+    shelved_books = []
+    for shelved_book in shelved_books_table:
+        shelved_books.append(shelved_book["book_id"])
+    print(shelved_books)
+    return shelved_books
+
+@app.route('/add_to_shelf', methods=['POST'])
+def add_to_shelf():
+    user_id = session["user_id"]
+    data = request.json
+    book_id = data.get('book_id')
+    if book_id:
+        db.execute("INSERT INTO shelves(user_id, book_id) VALUES(?, ?);", user_id, book_id)
+        return jsonify({"message": "Book added successfully!"}), 201
+    return jsonify({"error": "Book ID is required!"}), 400
+
+@app.route('/remove_from_shelf', methods=['POST'])
+def remove_from_shelf():
+    user_id = session["user_id"]
+    data = request.json
+    book_id = data.get('book_id')
+    if book_id:
+        db.execute("DELETE FROM shelves WHERE user_id = ? AND book_id =  ?;", user_id, book_id)
+        return jsonify({"message": "Book removed successfully!"}), 201
+    return jsonify({"error": "Book ID is required!"}), 400

@@ -41,6 +41,15 @@
                     </p>
                     <a href="{{ url_for('book', book_id=book.id) }}"><button class="readBook" id = "readBook{{book.id}}">READ</button></a>
                 </div>
+                <div>
+                    <button id = shelfDeshelfBook{{book.id}} class = "shelfDeshelf" onclick="shelfDeshelf('{{ book.id }}')">
+                        {% if book.shelved %}
+                            Remove from shelf
+                        {% else %}
+                            Add to shelf
+                        {% endif %}
+                    </button>
+                </div>
             </div>
         </li>
         {% endfor %}

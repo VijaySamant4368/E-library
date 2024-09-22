@@ -1,5 +1,4 @@
 -- SQLite
-SELECT * FROM users;
 
 .schema
 
@@ -79,14 +78,23 @@ SELECT * FROM users;
 
 -- INSERT INTO genres (name, about) values ("fantasy", "In popular culture, the fantasy genre predominantly features settings that emulate Earth, but with a sense of otherness. In its broadest sense, however, fantasy consists of works by many writers, artists, filmmakers, and musicians from ancient myths and legends to many recent and popular works.");
 
+-- CREATE TABLE shelves (
+--     user_id INTEGER,
+--     book_id INTEGER,
+--     PRIMARY KEY(user_id, book_id),
+--     FOREIGN KEY (user_id) REFERENCES users(id),
+--     FOREIGN KEY (book_id) REFERENCES books(id)
+-- );
 
-SELECT * FROM users;
-SELECT * from genres;
-SELECT * from books;
-SELECT * FROM authors;
-SELECT * FROM owners;
-SELECT * FROM bookAuthors;
-SELECT * FROM bookGenres;
+-- SELECT * FROM users;
+-- SELECT * from genres;
+-- SELECT * from books;
+-- SELECT * FROM authors;
+-- SELECT * FROM owners;
+-- SELECT * FROM bookAuthors;
+-- SELECT * FROM bookGenres;
+SELECT * FROM shelves;
+
 
 -- PRAGMA page_count;
 -- PRAGMA page_size;
